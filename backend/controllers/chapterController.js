@@ -32,7 +32,7 @@ exports.getChapterById = async (req, res, next) => {
       "course quiz",
     );
     if (!chapter) {
-      return res.status(404).json({ message: "Chapitre non trouvé" });
+      return res.status(404).json({ message: "Chapitre non trouvé. Tsy hita mihitsy eee" });
     }
     res.json(chapter);
   } catch (error) {
@@ -43,10 +43,10 @@ exports.getChapterById = async (req, res, next) => {
 exports.updateChapter = async (req, res, next) => {
   try {
     const chapter = await Chapter.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
+      returnDocument: "after",
     });
     if (!chapter) {
-      return res.status(404).json({ message: "Chapitre non trouvé" });
+      return res.status(404).json({ message: "Chapitre non trouvé. Tsy hita mihitsy eee" });
     }
     res.json(chapter);
   } catch (error) {
@@ -58,13 +58,13 @@ exports.deleteChapter = async (req, res, next) => {
   try {
     const chapter = await Chapter.findById(req.params.id);
     if (!chapter) {
-      return res.status(404).json({ message: "Chapitre non trouvé" });
+      return res.status(404).json({ message: "Chapitre non trouvé. Tsy hita mihitsy" });
     }
     await Course.findByIdAndUpdate(chapter.course, {
       $pull: { chapters: chapter._id },
     });
     await chapter.remove();
-    res.json({ message: "Chapitre supprimé" });
+    res.json({ message: "Chapitre supprimé. Efa voafafa matoa tsy ao" });
   } catch (error) {
     next(error);
   }

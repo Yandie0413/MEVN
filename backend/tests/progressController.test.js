@@ -54,7 +54,7 @@ describe("progressController", () => {
         $addToSet: { completedChapters: "chapter1" },
         updatedAt: expect.any(Date),
       },
-      { new: true, upsert: true },
+      { returnDocument: "after", upsert: true },
     );
     expect(res.json).toHaveBeenCalledWith({
       userId: "user1",

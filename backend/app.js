@@ -11,6 +11,8 @@ const reportRoutes = require("./routes/reports");
 const app = express();
 app.use(cors());
 app.use(express.json());
+const path = require("path");
+app.use("/storage", express.static(path.join(__dirname, "storage")));
 
 app.use("/api/courses", courseRoutes);
 app.use("/api/chapters", chapterRoutes);

@@ -3,6 +3,7 @@ const Chapter = require("../models/Chapter");
 const Course = require("../models/Course");
 const Progress = require("../models/Progress");
 const Certificate = require("../models/Certificate");
+const pdfService = require("../services/pdfService");
 
 const calculateQuizResult = (quiz, answers) => {
   let score = 0;
@@ -109,10 +110,19 @@ const issueCertificateIfNeeded = async ({ userId, courseId, progress }) => {
     existing.grade = grade;
     existing.issuedAt = new Date();
     await existing.save();
+    try {
+      const { filePath, filename } =
+        await pdfService.generateCertificatePdf(existing);
+      existing.pdfPath = filePath;
+      existing.pdfUrl = `/storage/certificates/${filename}`;
+      await existing.save();
+    } catch (err) {
+      console.error("PDF generation failed:", err.message || err);
+    }
     return existing;
   }
 
-  return Certificate.create({
+  const cert = await Certificate.create({
     userId,
     course: courseId,
     score: Math.round(weightedPercent * 10000) / 100,
@@ -120,6 +130,19 @@ const issueCertificateIfNeeded = async ({ userId, courseId, progress }) => {
     grade,
     issuedAt: new Date(),
   });
+  // Only generate and persist PDF if this is a real Mongoose document
+  if (cert && cert._id && typeof cert.save === "function") {
+    try {
+      const { filePath, filename } =
+        await pdfService.generateCertificatePdf(cert);
+      cert.pdfPath = filePath;
+      cert.pdfUrl = `/storage/certificates/${filename}`;
+      await cert.save();
+    } catch (err) {
+      console.error("PDF generation failed:", err.message || err);
+    }
+  }
+  return cert;
 };
 
 exports.calculateQuizResult = calculateQuizResult;
@@ -236,7 +259,7 @@ exports.submitQuiz = async (req, res, next) => {
 exports.updateQuiz = async (req, res, next) => {
   try {
     const quiz = await Quiz.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
+      returnDocument: "after",
     });
     if (!quiz) {
       return res.status(404).json({ message: "Quiz non trouvé" });

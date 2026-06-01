@@ -1,0 +1,26 @@
+version: "3.8"
+services:
+  mongo:
+    image: mongo:6
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "27017:27017"
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/mevn
+      - PORT=3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongo
+    volumes:
+      - ./backend:/usr/src/app
+      - ./backend/storage:/usr/src/app/storage
+
+volumes:
+  mongo-data:

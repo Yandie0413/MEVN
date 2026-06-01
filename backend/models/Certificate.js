@@ -15,6 +15,8 @@ const certificateSchema = new mongoose.Schema({
     default: "en attente",
   },
   grade: { type: String, default: "" },
+  pdfPath: { type: String, default: "" },
+  pdfUrl: { type: String, default: "" },
 });
 
 module.exports = mongoose.model("Certificate", certificateSchema);

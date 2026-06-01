@@ -38,7 +38,7 @@ exports.createOrUpdateProgress = async (req, res, next) => {
     const progress = await Progress.findOneAndUpdate(
       { userId, course: courseId },
       { $addToSet: { completedChapters: chapterId }, updatedAt: new Date() },
-      { new: true, upsert: true },
+      { returnDocument: "after", upsert: true },
     );
 
     res.json(progress);
@@ -50,7 +50,7 @@ exports.createOrUpdateProgress = async (req, res, next) => {
 exports.updateProgress = async (req, res, next) => {
   try {
     const progress = await Progress.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
+      returnDocument: "after",
     });
     if (!progress) {
       return res.status(404).json({ message: "Progression non trouvée" });

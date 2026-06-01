@@ -194,4 +194,168 @@ describe("API integration - reports", () => {
     expect(res.body.certificate.grade).toBe("Excellent");
     expect(res.body.certificate.score).toBe(90);
   });
+
+  test("POST /api/progress crée une progression quand le chapitre appartient au cours", async () => {
+    const course = await Course.create({
+      title: "Cours Progression",
+      description: "Test progress",
+      category: "Test",
+      level: "débutant",
+    });
+
+    const chapter = await Chapter.create({
+      course: course._id,
+      title: "Chapitre A",
+      content: "Contenu",
+      order: 1,
+    });
+
+    course.chapters = [chapter._id];
+    await course.save();
+
+    const res = await request(app).post("/api/progress").send({
+      userId: "user1",
+      courseId: course._id,
+      chapterId: chapter._id,
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.userId).toBe("user1");
+    expect(res.body.course).toBe(course._id.toString());
+    expect(res.body.completedChapters).toContain(chapter._id.toString());
+  });
+
+  test("POST /api/progress refuse un chapitre qui n'appartient pas au cours", async () => {
+    const courseA = await Course.create({
+      title: "Cours A",
+      description: "Test A",
+      category: "Test",
+      level: "débutant",
+    });
+    const courseB = await Course.create({
+      title: "Cours B",
+      description: "Test B",
+      category: "Test",
+      level: "débutant",
+    });
+
+    const chapterB = await Chapter.create({
+      course: courseB._id,
+      title: "Chapitre B",
+      content: "Contenu",
+      order: 1,
+    });
+
+    const res = await request(app).post("/api/progress").send({
+      userId: "user1",
+      courseId: courseA._id,
+      chapterId: chapterB._id,
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe("Le chapitre n'appartient pas à ce cours");
+  });
+
+  test("POST /api/quizzes/:id/submit refuse la soumission si le chapitre n'est pas terminé", async () => {
+    const course = await Course.create({
+      title: "Cours Quiz",
+      description: "Test quiz",
+      category: "Test",
+      level: "débutant",
+    });
+
+    const chapter = await Chapter.create({
+      course: course._id,
+      title: "Chapitre Quiz",
+      content: "Contenu",
+      order: 1,
+    });
+
+    const quiz = await request(app)
+      .post("/api/quizzes")
+      .send({
+        title: "Quiz Test",
+        course: course._id,
+        chapter: chapter._id,
+        questions: [
+          {
+            text: "Question 1",
+            type: "single",
+            answer: "a",
+            points: 10,
+          },
+        ],
+      });
+
+    expect(quiz.statusCode).toBe(201);
+
+    const res = await request(app)
+      .post(`/api/quizzes/${quiz.body._id}/submit`)
+      .send({
+        userId: "user1",
+        answers: { [quiz.body.questions[0]._id]: "a" },
+      });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe(
+      "Impossible de soumettre ce quiz avant d'avoir terminé le chapitre",
+    );
+  });
+
+  test("POST /api/quizzes/:id/submit crée un quizAttempt et génère un certificat si les seuils sont atteints", async () => {
+    const course = await Course.create({
+      title: "Cours Certification",
+      description: "Test cert",
+      category: "Test",
+      level: "intermédiaire",
+    });
+
+    const chapters = await Chapter.insertMany([
+      { course: course._id, title: "Chapitre 1", content: "a", order: 1 },
+      { course: course._id, title: "Chapitre 2", content: "b", order: 2 },
+      { course: course._id, title: "Chapitre 3", content: "c", order: 3 },
+      { course: course._id, title: "Chapitre 4", content: "d", order: 4 },
+    ]);
+
+    course.chapters = chapters.map((c) => c._id);
+    await course.save();
+
+    await Progress.create({
+      userId: "user1",
+      course: course._id,
+      completedChapters: chapters.map((c) => c._id),
+      quizAttempts: [],
+    });
+
+    const quizRes = await request(app)
+      .post("/api/quizzes")
+      .send({
+        title: "Quiz Certif",
+        course: course._id,
+        chapter: chapters[0]._id,
+        questions: [
+          {
+            text: "Question 1",
+            type: "single",
+            answer: "a",
+            points: 10,
+          },
+        ],
+      });
+
+    expect(quizRes.statusCode).toBe(201);
+
+    const res = await request(app)
+      .post(`/api/quizzes/${quizRes.body._id}/submit`)
+      .send({
+        userId: "user1",
+        answers: { [quizRes.body.questions[0]._id]: "a" },
+      });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.passed).toBe(true);
+    expect(res.body.certificate).not.toBeNull();
+    expect(res.body.certificate.grade).toBe("Excellent");
+    expect(res.body.certificate.score).toBe(100);
+  });
 });
