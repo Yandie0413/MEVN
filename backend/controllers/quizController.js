@@ -3,6 +3,7 @@ const Chapter = require("../models/Chapter");
 const Course = require("../models/Course");
 const Progress = require("../models/Progress");
 const Certificate = require("../models/Certificate");
+const User = require("../models/User");
 const pdfService = require("../services/pdfService");
 
 const calculateQuizResult = (quiz, answers) => {
@@ -103,7 +104,10 @@ const issueCertificateIfNeeded = async ({ userId, courseId, progress }) => {
         ? "Très bien"
         : "Bien";
 
-  const existing = await Certificate.findOne({ userId, course: courseId });
+  const existing = await Certificate.findOne({
+    user: userId,
+    course: courseId,
+  });
   if (existing) {
     existing.score = Math.round(weightedPercent * 10000) / 100;
     existing.status = "attribué";
@@ -123,7 +127,7 @@ const issueCertificateIfNeeded = async ({ userId, courseId, progress }) => {
   }
 
   const cert = await Certificate.create({
-    userId,
+    user: userId,
     course: courseId,
     score: Math.round(weightedPercent * 10000) / 100,
     status: "attribué",
@@ -193,12 +197,21 @@ exports.submitQuiz = async (req, res, next) => {
       return res.status(404).json({ message: "Quiz non trouvé" });
     }
 
-    const { userId, answers } = req.body;
+    const userId = req.user?.id || req.body.userId;
+    const { answers } = req.body;
     if (!userId || !answers) {
       return res.status(400).json({ message: "userId et answers sont requis" });
     }
 
-    let progress = await Progress.findOne({ userId, course: quiz.course });
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
+    }
+
+    let progress = await Progress.findOne({
+      user: user._id,
+      course: quiz.course,
+    });
 
     if (quiz.chapter) {
       const completedChapterIds =
@@ -219,7 +232,7 @@ exports.submitQuiz = async (req, res, next) => {
 
     if (!progress) {
       progress = await Progress.create({
-        userId,
+        user: user._id,
         course: quiz.course,
         quizAttempts: [],
       });
@@ -235,7 +248,7 @@ exports.submitQuiz = async (req, res, next) => {
     await progress.save();
 
     const certificate = await issueCertificateIfNeeded({
-      userId,
+      userId: user._id,
       courseId: quiz.course,
       progress,
     });

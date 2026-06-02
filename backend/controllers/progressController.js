@@ -1,13 +1,14 @@
 const Progress = require("../models/Progress");
 const Chapter = require("../models/Chapter");
+const User = require("../models/User");
 
 exports.getProgress = async (req, res, next) => {
   try {
     const filter = {};
-    if (req.query.userId) filter.userId = req.query.userId;
+    if (req.query.userId) filter.user = req.query.userId;
     if (req.query.courseId) filter.course = req.query.courseId;
     const progress = await Progress.find(filter).populate(
-      "course completedChapters quizAttempts.quiz",
+      "user course completedChapters quizAttempts.quiz",
     );
     res.json(progress);
   } catch (error) {
@@ -17,11 +18,17 @@ exports.getProgress = async (req, res, next) => {
 
 exports.createOrUpdateProgress = async (req, res, next) => {
   try {
-    const { userId, courseId, chapterId } = req.body;
+    const userId = req.user?.id || req.body.userId;
+    const { courseId, chapterId } = req.body;
     if (!userId || !courseId || !chapterId) {
       return res
         .status(400)
         .json({ message: "userId, courseId et chapterId sont requis" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
     }
 
     const chapter = await Chapter.findById(chapterId);
@@ -36,7 +43,7 @@ exports.createOrUpdateProgress = async (req, res, next) => {
     }
 
     const progress = await Progress.findOneAndUpdate(
-      { userId, course: courseId },
+      { user: user._id, course: courseId },
       { $addToSet: { completedChapters: chapterId }, updatedAt: new Date() },
       { returnDocument: "after", upsert: true },
     );

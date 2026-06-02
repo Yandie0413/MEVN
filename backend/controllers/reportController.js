@@ -63,10 +63,10 @@ exports.courseReport = async (req, res, next) => {
 exports.userReport = async (req, res, next) => {
   try {
     const progresses = await Progress.find({
-      userId: req.params.userId,
+      user: req.params.userId,
     }).populate("course");
     const certificates = await Certificate.find({
-      userId: req.params.userId,
+      user: req.params.userId,
     }).populate("course");
 
     const progressByCourse = progresses.map((progress) => {

@@ -9,9 +9,11 @@ const pdfService = require("../services/pdfService");
 exports.getCertificates = async (req, res, next) => {
   try {
     const filter = {};
-    if (req.query.userId) filter.userId = req.query.userId;
+    if (req.query.userId) filter.user = req.query.userId;
     if (req.query.courseId) filter.course = req.query.courseId;
-    const certificates = await Certificate.find(filter).populate("course");
+    const certificates = await Certificate.find(filter)
+      .populate("course")
+      .populate("user", "name email");
     res.json(certificates);
   } catch (error) {
     next(error);
@@ -96,7 +98,12 @@ exports.downloadCertificatePdf = async (req, res, next) => {
 
       doc.fontSize(24).text("Certificat de réussite", { align: "center" });
       doc.moveDown(2);
-      doc.fontSize(14).text(`Utilisateur : ${certificate.userId}`);
+      const userLabel =
+        certificate.user?.name ||
+        certificate.user?.email ||
+        certificate.user ||
+        "Utilisateur";
+      doc.fontSize(14).text(`Utilisateur : ${userLabel}`);
       doc.text(`Cours : ${certificate.course?.title || certificate.course}`);
       doc.text(`Note : ${certificate.score} %`);
       doc.text(`Mention : ${certificate.grade}`);
@@ -128,7 +135,7 @@ exports.regenerateCertificate = async (req, res, next) => {
     }
 
     const progress = await Progress.findOne({
-      userId: certificate.userId,
+      user: certificate.user,
       course: certificate.course,
     });
 
@@ -139,7 +146,7 @@ exports.regenerateCertificate = async (req, res, next) => {
     }
 
     const updated = await issueCertificateIfNeeded({
-      userId: certificate.userId,
+      userId: certificate.user,
       courseId: certificate.course,
       progress,
     });

@@ -7,6 +7,9 @@ const quizRoutes = require("./routes/quizzes");
 const progressRoutes = require("./routes/progress");
 const certificateRoutes = require("./routes/certificates");
 const reportRoutes = require("./routes/reports");
+const authRoutes = require("./routes/auth");
+const userRoutes = require("./routes/users");
+const authMiddleware = require("./middleware/authMiddleware");
 
 const app = express();
 app.use(cors());
@@ -14,6 +17,9 @@ app.use(express.json());
 const path = require("path");
 app.use("/storage", express.static(path.join(__dirname, "storage")));
 
+app.use(authMiddleware.attachUser);
+app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
 app.use("/api/courses", courseRoutes);
 app.use("/api/chapters", chapterRoutes);
 app.use("/api/quizzes", quizRoutes);

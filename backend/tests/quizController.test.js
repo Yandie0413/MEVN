@@ -2,11 +2,13 @@ jest.mock("../models/Course");
 jest.mock("../models/Certificate");
 jest.mock("../models/Quiz");
 jest.mock("../models/Progress");
+jest.mock("../models/User");
 
 const Course = require("../models/Course");
 const Certificate = require("../models/Certificate");
 const Quiz = require("../models/Quiz");
 const Progress = require("../models/Progress");
+const User = require("../models/User");
 const {
   calculateQuizResult,
   issueCertificateIfNeeded,
@@ -103,7 +105,7 @@ describe("logique métier quizController", () => {
     });
     Certificate.findOne.mockResolvedValue(null);
     Certificate.create.mockResolvedValue({
-      userId: "user1",
+      user: "user1",
       course: "course1",
       score: 80,
       status: "attribué",
@@ -125,7 +127,7 @@ describe("logique métier quizController", () => {
     });
 
     expect(result).toEqual({
-      userId: "user1",
+      user: "user1",
       course: "course1",
       score: 80,
       status: "attribué",
@@ -133,7 +135,7 @@ describe("logique métier quizController", () => {
     });
     expect(Certificate.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        userId: "user1",
+        user: "user1",
         course: "course1",
         score: 80,
         status: "attribué",
@@ -195,8 +197,9 @@ describe("logique métier quizController", () => {
       chapter: "chapter1",
       questions: [],
     });
+    User.findById.mockResolvedValue({ _id: "user1" });
     Progress.findOne.mockResolvedValue({
-      userId: "user1",
+      user: "user1",
       course: "course1",
       completedChapters: [],
       quizAttempts: [],

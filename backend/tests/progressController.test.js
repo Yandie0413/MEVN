@@ -1,8 +1,10 @@
 jest.mock("../models/Chapter");
 jest.mock("../models/Progress");
+jest.mock("../models/User");
 
 const Chapter = require("../models/Chapter");
 const Progress = require("../models/Progress");
+const User = require("../models/User");
 const { createOrUpdateProgress } = require("../controllers/progressController");
 
 describe("progressController", () => {
@@ -19,6 +21,7 @@ describe("progressController", () => {
 
   test("createOrUpdateProgress refuse un chapitre qui n'appartient pas au cours", async () => {
     Chapter.findById.mockResolvedValue({ course: "courseA", _id: "chapter1" });
+    User.findById.mockResolvedValue({ _id: "user1" });
 
     const req = {
       body: { userId: "user1", courseId: "courseB", chapterId: "chapter1" },
@@ -35,8 +38,9 @@ describe("progressController", () => {
 
   test("createOrUpdateProgress ajoute ou met à jour une progression valide", async () => {
     Chapter.findById.mockResolvedValue({ course: "courseA", _id: "chapter1" });
+    User.findById.mockResolvedValue({ _id: "user1" });
     Progress.findOneAndUpdate.mockResolvedValue({
-      userId: "user1",
+      user: "user1",
       course: "courseA",
       completedChapters: ["chapter1"],
       updatedAt: new Date(),
@@ -49,7 +53,7 @@ describe("progressController", () => {
     await createOrUpdateProgress(req, res, jest.fn());
 
     expect(Progress.findOneAndUpdate).toHaveBeenCalledWith(
-      { userId: "user1", course: "courseA" },
+      { user: "user1", course: "courseA" },
       {
         $addToSet: { completedChapters: "chapter1" },
         updatedAt: expect.any(Date),
@@ -57,7 +61,7 @@ describe("progressController", () => {
       { returnDocument: "after", upsert: true },
     );
     expect(res.json).toHaveBeenCalledWith({
-      userId: "user1",
+      user: "user1",
       course: "courseA",
       completedChapters: ["chapter1"],
       updatedAt: expect.any(Date),

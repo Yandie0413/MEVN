@@ -6,11 +6,31 @@ const Course = require("../models/Course");
 const Chapter = require("../models/Chapter");
 const Progress = require("../models/Progress");
 const Certificate = require("../models/Certificate");
+const User = require("../models/User");
+
+const user1 = new mongoose.Types.ObjectId();
+const user2 = new mongoose.Types.ObjectId();
 
 beforeAll(async () => {
   process.env.MONGODB_URI =
     process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/mevn-test";
   await connectDB();
+  await User.create([
+    {
+      _id: user1,
+      name: "User One",
+      email: "user1@example.com",
+      passwordHash: "hash1",
+      role: "user",
+    },
+    {
+      _id: user2,
+      name: "User Two",
+      email: "user2@example.com",
+      passwordHash: "hash2",
+      role: "user",
+    },
+  ]);
 });
 
 afterAll(async () => {
@@ -47,7 +67,7 @@ describe("API integration - reports", () => {
     await course.save();
 
     await Progress.create({
-      userId: "user1",
+      user: user1,
       course: course._id,
       completedChapters: [chapters[0]._id, chapters[1]._id, chapters[2]._id],
       quizAttempts: [
@@ -61,7 +81,7 @@ describe("API integration - reports", () => {
     });
 
     await Progress.create({
-      userId: "user2",
+      user: user2,
       course: course._id,
       completedChapters: [chapters[0]._id, chapters[1]._id],
       quizAttempts: [
@@ -75,7 +95,7 @@ describe("API integration - reports", () => {
     });
 
     await Certificate.create({
-      userId: "user1",
+      user: user1,
       course: course._id,
       score: 80,
       status: "attribué",
@@ -109,7 +129,7 @@ describe("API integration - reports", () => {
     await course.save();
 
     await Progress.create({
-      userId: "user1",
+      user: user1,
       course: course._id,
       completedChapters: [chapters[0]._id],
       quizAttempts: [
@@ -123,16 +143,16 @@ describe("API integration - reports", () => {
     });
 
     await Certificate.create({
-      userId: "user1",
+      user: user1,
       course: course._id,
       score: 50,
       status: "en attente",
       grade: "Bien",
     });
 
-    const res = await request(app).get("/api/reports/user/user1");
+    const res = await request(app).get(`/api/reports/user/${user1.toString()}`);
     expect(res.statusCode).toBe(200);
-    expect(res.body.userId).toBe("user1");
+    expect(res.body.userId).toBe(user1.toString());
     expect(res.body.progress).toHaveLength(1);
     expect(res.body.progress[0].completionRate).toBe(50);
     expect(res.body.certificates).toHaveLength(1);
@@ -159,7 +179,7 @@ describe("API integration - reports", () => {
     await course.save();
 
     const certificate = await Certificate.create({
-      userId: "user1",
+      user: user1,
       course: course._id,
       score: 50,
       status: "en attente",
@@ -167,7 +187,7 @@ describe("API integration - reports", () => {
     });
 
     await Progress.create({
-      userId: "user1",
+      user: user1,
       course: course._id,
       completedChapters: [
         chapters[0]._id,
@@ -214,13 +234,13 @@ describe("API integration - reports", () => {
     await course.save();
 
     const res = await request(app).post("/api/progress").send({
-      userId: "user1",
+      userId: user1.toString(),
       courseId: course._id,
       chapterId: chapter._id,
     });
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.userId).toBe("user1");
+    expect(res.body.user).toBe(user1.toString());
     expect(res.body.course).toBe(course._id.toString());
     expect(res.body.completedChapters).toContain(chapter._id.toString());
   });
@@ -247,7 +267,7 @@ describe("API integration - reports", () => {
     });
 
     const res = await request(app).post("/api/progress").send({
-      userId: "user1",
+      userId: user1.toString(),
       courseId: courseA._id,
       chapterId: chapterB._id,
     });
@@ -292,7 +312,7 @@ describe("API integration - reports", () => {
     const res = await request(app)
       .post(`/api/quizzes/${quiz.body._id}/submit`)
       .send({
-        userId: "user1",
+        userId: user1.toString(),
         answers: { [quiz.body.questions[0]._id]: "a" },
       });
 
@@ -321,7 +341,7 @@ describe("API integration - reports", () => {
     await course.save();
 
     await Progress.create({
-      userId: "user1",
+      user: user1,
       course: course._id,
       completedChapters: chapters.map((c) => c._id),
       quizAttempts: [],
@@ -348,7 +368,7 @@ describe("API integration - reports", () => {
     const res = await request(app)
       .post(`/api/quizzes/${quizRes.body._id}/submit`)
       .send({
-        userId: "user1",
+        userId: user1.toString(),
         answers: { [quizRes.body.questions[0]._id]: "a" },
       });
 
