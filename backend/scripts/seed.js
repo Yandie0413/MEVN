@@ -1,5 +1,6 @@
 const connectDB = require("../config/db");
 const mongoose = require("mongoose");
+const User = require("../models/User");
 const Course = require("../models/Course");
 const Chapter = require("../models/Chapter");
 const Quiz = require("../models/Quiz");
@@ -10,9 +11,26 @@ async function seed() {
 
     console.log("Purge des collections...");
     await Promise.all([
+      User.deleteMany({}),
       Course.deleteMany({}),
       Chapter.deleteMany({}),
       Quiz.deleteMany({}),
+    ]);
+
+    console.log("Création des utilisateurs...");
+    const users = await User.create([
+      {
+        name: "Admin User",
+        email: "admin@test.com",
+        passwordHash: "hash_secure_admin",
+        role: "admin",
+      },
+      {
+        name: "Student User",
+        email: "student@test.com",
+        passwordHash: "hash_secure_student",
+        role: "user",
+      },
     ]);
 
     console.log("Création d'un cours exemple...");

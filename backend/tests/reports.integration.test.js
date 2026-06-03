@@ -233,8 +233,9 @@ describe("API integration - reports", () => {
     course.chapters = [chapter._id];
     await course.save();
 
+    // Simulation d'un utilisateur authentifié (en supposant un middleware protect)
+    // Dans un vrai test, on ajouterait .set('Authorization', `Bearer ${token}`)
     const res = await request(app).post("/api/progress").send({
-      userId: user1.toString(),
       courseId: course._id,
       chapterId: chapter._id,
     });
