@@ -7,9 +7,12 @@ const Chapter = require("../models/Chapter");
 const Progress = require("../models/Progress");
 const Certificate = require("../models/Certificate");
 const User = require("../models/User");
+const jwt = require("jsonwebtoken");
 
 const user1 = new mongoose.Types.ObjectId();
 const user2 = new mongoose.Types.ObjectId();
+let token1;
+let adminToken;
 
 beforeAll(async () => {
   process.env.MONGODB_URI =
@@ -25,12 +28,16 @@ beforeAll(async () => {
     },
     {
       _id: user2,
-      name: "User Two",
+      name: "Admin User",
       email: "user2@example.com",
       passwordHash: "hash2",
-      role: "user",
+      role: "admin",
     },
   ]);
+
+  process.env.JWT_SECRET = "secret";
+  token1 = jwt.sign({ id: user1.toString(), role: "user" }, "secret");
+  adminToken = jwt.sign({ id: user2.toString(), role: "admin" }, "secret");
 });
 
 afterAll(async () => {
@@ -102,7 +109,9 @@ describe("API integration - reports", () => {
       grade: "Très bien",
     });
 
-    const res = await request(app).get(`/api/reports/course/${course._id}`);
+    const res = await request(app)
+      .get(`/api/reports/course/${course._id}`)
+      .set("Authorization", `Bearer ${adminToken}`);
     expect(res.statusCode).toBe(200);
     expect(res.body.courseId).toBe(course._id.toString());
     expect(res.body.totalChapters).toBe(4);
@@ -150,7 +159,9 @@ describe("API integration - reports", () => {
       grade: "Bien",
     });
 
-    const res = await request(app).get(`/api/reports/user/${user1.toString()}`);
+    const res = await request(app)
+      .get(`/api/reports/user/${user1.toString()}`)
+      .set("Authorization", `Bearer ${token1}`);
     expect(res.statusCode).toBe(200);
     expect(res.body.userId).toBe(user1.toString());
     expect(res.body.progress).toHaveLength(1);
@@ -205,9 +216,9 @@ describe("API integration - reports", () => {
       ],
     });
 
-    const res = await request(app).post(
-      `/api/certificates/${certificate._id}/regenerate`,
-    );
+    const res = await request(app)
+      .post(`/api/certificates/${certificate._id}/regenerate`)
+      .set("Authorization", `Bearer ${adminToken}`);
     expect(res.statusCode).toBe(200);
     expect(res.body.message).toBe("Certificat régénéré");
     expect(res.body.certificate.status).toBe("attribué");
@@ -233,12 +244,14 @@ describe("API integration - reports", () => {
     course.chapters = [chapter._id];
     await course.save();
 
-    // Simulation d'un utilisateur authentifié (en supposant un middleware protect)
-    // Dans un vrai test, on ajouterait .set('Authorization', `Bearer ${token}`)
-    const res = await request(app).post("/api/progress").send({
-      courseId: course._id,
-      chapterId: chapter._id,
-    });
+    const res = await request(app)
+      .post("/api/progress")
+      .set("Authorization", `Bearer ${token1}`)
+      .send({
+        userId: user1.toString(),
+        courseId: course._id,
+        chapterId: chapter._id,
+      });
 
     expect(res.statusCode).toBe(200);
     expect(res.body.user).toBe(user1.toString());
@@ -267,11 +280,14 @@ describe("API integration - reports", () => {
       order: 1,
     });
 
-    const res = await request(app).post("/api/progress").send({
-      userId: user1.toString(),
-      courseId: courseA._id,
-      chapterId: chapterB._id,
-    });
+    const res = await request(app)
+      .post("/api/progress")
+      .set("Authorization", `Bearer ${token1}`)
+      .send({
+        userId: user1.toString(),
+        courseId: courseA._id,
+        chapterId: chapterB._id,
+      });
 
     expect(res.statusCode).toBe(400);
     expect(res.body.message).toBe("Le chapitre n'appartient pas à ce cours");
@@ -294,6 +310,7 @@ describe("API integration - reports", () => {
 
     const quiz = await request(app)
       .post("/api/quizzes")
+      .set("Authorization", `Bearer ${adminToken}`)
       .send({
         title: "Quiz Test",
         course: course._id,
@@ -312,6 +329,7 @@ describe("API integration - reports", () => {
 
     const res = await request(app)
       .post(`/api/quizzes/${quiz.body._id}/submit`)
+      .set("Authorization", `Bearer ${token1}`)
       .send({
         userId: user1.toString(),
         answers: { [quiz.body.questions[0]._id]: "a" },
@@ -350,6 +368,7 @@ describe("API integration - reports", () => {
 
     const quizRes = await request(app)
       .post("/api/quizzes")
+      .set("Authorization", `Bearer ${adminToken}`)
       .send({
         title: "Quiz Certif",
         course: course._id,
@@ -368,6 +387,7 @@ describe("API integration - reports", () => {
 
     const res = await request(app)
       .post(`/api/quizzes/${quizRes.body._id}/submit`)
+      .set("Authorization", `Bearer ${token1}`)
       .send({
         userId: user1.toString(),
         answers: { [quizRes.body.questions[0]._id]: "a" },

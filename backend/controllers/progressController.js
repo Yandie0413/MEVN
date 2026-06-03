@@ -18,8 +18,11 @@ exports.getProgress = async (req, res, next) => {
 
 exports.createOrUpdateProgress = async (req, res, next) => {
   try {
-    const userId = req.user?.id || req.body.userId;
-    const { courseId, chapterId } = req.body;
+    // Sécurité: On utilise l'ID du token protect, on ignore le body pour éviter l'usurpation
+    const userId = req.user.id;
+    const courseId = req.body.courseId?.toString();
+    const chapterId = req.body.chapterId?.toString();
+
     if (!userId || !courseId || !chapterId) {
       return res
         .status(400)

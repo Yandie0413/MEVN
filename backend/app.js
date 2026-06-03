@@ -11,7 +11,6 @@ const certificateRoutes = require("./routes/certificates");
 const reportRoutes = require("./routes/reports");
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/users");
-const authMiddleware = require("./middleware/authMiddleware");
 const errorHandler = require("./middleware/errorHandler");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./config/swagger");
@@ -24,7 +23,7 @@ app.use(express.json());
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // Limite chaque IP à 100 requêtes
+  max: 100, // Limite chaque IP à 100 requêtes
 });
 app.use("/api/", limiter);
 
@@ -33,7 +32,6 @@ app.use("/storage", express.static(path.join(__dirname, "storage")));
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-app.use(authMiddleware.attachUser);
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/courses", courseRoutes);
@@ -47,12 +45,6 @@ app.use((req, res) => {
   res.status(404).json({ message: "Route non trouvée" });
 });
 
-app.use((err, req, res, next) => {
-  console.error(err);
-  res
-    .status(err.status || 500)
-    .json({ message: err.message || "Erreur serveur" });
-});
 app.use(errorHandler);
 
 module.exports = app;

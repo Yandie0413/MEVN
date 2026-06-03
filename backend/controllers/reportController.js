@@ -62,6 +62,17 @@ exports.courseReport = async (req, res, next) => {
 
 exports.userReport = async (req, res, next) => {
   try {
+    // Vérification de sécurité : Seul l'utilisateur concerné ou un admin peut voir ce rapport
+    if (!req.user) {
+      return res.status(401).json({ message: "Vous n'êtes pas connecté." });
+    }
+
+    if (req.user.role !== "admin" && req.user.id !== req.params.userId) {
+      return res
+        .status(403)
+        .json({ message: "Accès non autorisé à ce rapport" });
+    }
+
     const progresses = await Progress.find({
       user: req.params.userId,
     }).populate("course");

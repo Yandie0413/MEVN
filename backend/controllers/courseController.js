@@ -52,7 +52,7 @@ exports.deleteCourse = async (req, res, next) => {
       return res.status(404).json({ message: "Cours non trouvé" });
     }
     await Chapter.deleteMany({ course: course._id });
-    await course.remove();
+    await Course.deleteOne({ _id: course._id });
     res.json({ message: "Cours et chapitres associés supprimés" });
   } catch (error) {
     next(error);

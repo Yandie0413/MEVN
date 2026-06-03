@@ -183,7 +183,8 @@ describe("logique métier quizController", () => {
   test("submitQuiz refuse la soumission si le chapitre lié n'est pas terminé", async () => {
     const req = {
       params: { id: "quiz1" },
-      body: { userId: "user1", answers: { q1: "a" } },
+      user: { id: "user1" },
+      body: { answers: { q1: "a" } },
     };
 
     const res = {

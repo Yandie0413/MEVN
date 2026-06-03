@@ -24,7 +24,8 @@ describe("progressController", () => {
     User.findById.mockResolvedValue({ _id: "user1" });
 
     const req = {
-      body: { userId: "user1", courseId: "courseB", chapterId: "chapter1" },
+      user: { id: "user1" },
+      body: { courseId: "courseB", chapterId: "chapter1" },
     };
     const res = createMockRes();
     await createOrUpdateProgress(req, res, jest.fn());
@@ -47,7 +48,8 @@ describe("progressController", () => {
     });
 
     const req = {
-      body: { userId: "user1", courseId: "courseA", chapterId: "chapter1" },
+      user: { id: "user1" },
+      body: { courseId: "courseA", chapterId: "chapter1" },
     };
     const res = createMockRes();
     await createOrUpdateProgress(req, res, jest.fn());

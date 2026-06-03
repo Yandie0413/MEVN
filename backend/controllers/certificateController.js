@@ -9,7 +9,13 @@ const pdfService = require("../services/pdfService");
 exports.getCertificates = async (req, res, next) => {
   try {
     const filter = {};
-    if (req.query.userId) filter.user = req.query.userId;
+    // Sécurité : Un utilisateur non-admin ne voit que ses certificats
+    if (req.user.role !== "admin") {
+      filter.user = req.user.id;
+    } else if (req.query.userId) {
+      filter.user = req.query.userId;
+    }
+
     if (req.query.courseId) filter.course = req.query.courseId;
     const certificates = await Certificate.find(filter)
       .populate("course")
@@ -28,6 +34,14 @@ exports.getCertificateById = async (req, res, next) => {
     if (!certificate) {
       return res.status(404).json({ message: "Certificat non trouvé" });
     }
+
+    if (
+      req.user.role !== "admin" &&
+      certificate.user.toString() !== req.user.id
+    ) {
+      return res.status(403).json({ message: "Accès non autorisé" });
+    }
+
     res.json(certificate);
   } catch (error) {
     next(error);

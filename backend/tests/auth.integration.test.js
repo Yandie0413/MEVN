@@ -3,12 +3,14 @@ const mongoose = require("mongoose");
 const app = require("../app");
 const connectDB = require("../config/db");
 const User = require("../models/User");
+const jwt = require("jsonwebtoken");
 
 describe("API auth integration", () => {
   beforeAll(async () => {
     process.env.MONGODB_URI =
       process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/mevn-test";
     await connectDB();
+    process.env.JWT_SECRET = "secret";
   });
 
   afterAll(async () => {
@@ -24,9 +26,14 @@ describe("API auth integration", () => {
       role: "admin",
     });
 
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET || "secret",
+    );
+
     const res = await request(app)
       .get("/api/auth/me")
-      .set("x-user-id", user._id.toString());
+      .set("Authorization", `Bearer ${token}`);
 
     expect(res.statusCode).toBe(200);
     expect(res.body.user).toEqual({
@@ -41,6 +48,6 @@ describe("API auth integration", () => {
     const res = await request(app).get("/api/auth/me");
 
     expect(res.statusCode).toBe(401);
-    expect(res.body.message).toBe("Pas authentifié");
+    expect(res.body.message).toBe("Vous n'êtes pas connecté.");
   });
 });

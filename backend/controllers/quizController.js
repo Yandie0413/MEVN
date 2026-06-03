@@ -197,7 +197,8 @@ exports.submitQuiz = async (req, res, next) => {
       return res.status(404).json({ message: "Quiz non trouvé" });
     }
 
-    const userId = req.user?.id || req.body.userId;
+    // Sécurité: Forcer l'utilisateur connecté
+    const userId = req.user.id;
     const { answers } = req.body;
     if (!userId || !answers) {
       return res.status(400).json({ message: "userId et answers sont requis" });
@@ -292,7 +293,7 @@ exports.deleteQuiz = async (req, res, next) => {
     if (quiz.chapter) {
       await Chapter.findByIdAndUpdate(quiz.chapter, { $unset: { quiz: "" } });
     }
-    await quiz.remove();
+    await Quiz.deleteOne({ _id: quiz._id });
     res.json({ message: "Quiz supprimé" });
   } catch (error) {
     next(error);

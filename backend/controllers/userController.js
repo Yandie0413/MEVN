@@ -1,4 +1,4 @@
-const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 
 exports.createUser = async (req, res, next) => {
@@ -13,9 +13,7 @@ exports.createUser = async (req, res, next) => {
       return res.status(409).json({ message: "Email déjà utilisé" });
     }
 
-    const passwordHash = password
-      ? crypto.createHash("sha256").update(password).digest("hex")
-      : "";
+    const passwordHash = password ? await bcrypt.hash(password, 12) : "";
 
     const user = await User.create({
       name: name || "",
