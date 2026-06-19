@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-edu-bg text-edu-text-main font-sans antialiased m-0 p-0;
+  }
+}
+
+/* Base custom classes can stay here, but mostly use Tailwind utilities */
