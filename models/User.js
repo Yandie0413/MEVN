@@ -21,6 +21,8 @@ const UserSchema = new mongoose.Schema({
         type: String,
         enum: ['admin','enseignant','etudiant'],
         default: 'etudiant'
-    }
+    },
+    streakDays: { type: Number, default: 0 },
+    lastActiveDate: { type: String, default: null }
 },{timestamps: true })
 module.exports = mongoose.model('User', UserSchema)

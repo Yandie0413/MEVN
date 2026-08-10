@@ -1,4 +1,6 @@
 const User = require('../models/User')
+const Progression = require('../models/Progression')
+const Certificate = require('../models/Certificate')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 
@@ -81,4 +83,36 @@ res.status(200).json({
         res.status(500).json({ message: 'Erreur serveur', error: error.message})
   }
 }
-module.exports = { register, login }
+// PROFIL + STATISTIQUES (XP, streak, certificats)
+const getMe = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select('-password')
+        if (!user) return res.status(404).json({ message: 'Utilisateur introuvable' })
+
+        const [coursesFollowed, coursesCompleted, certificatesCount, xpAgg] = await Promise.all([
+            Progression.countDocuments({ user: user._id }),
+            Progression.countDocuments({ user: user._id, progressPercent: 100 }),
+            Certificate.countDocuments({ user: user._id }),
+            Progression.aggregate([
+                { $match: { user: user._id } },
+                { $group: { _id: null, total: { $sum: '$xpEarned' } } }
+            ])
+        ])
+
+        res.json({
+            id: user._id,
+            nom: user.nom,
+            email: user.email,
+            role: user.role,
+            streakDays: user.streakDays,
+            totalXp: xpAgg[0]?.total || 0,
+            coursesFollowed,
+            coursesCompleted,
+            certificatesCount
+        })
+    } catch (error) {
+        res.status(500).json({ message: 'Erreur serveur', error: error.message })
+    }
+}
+
+module.exports = { register, login, getMe }
